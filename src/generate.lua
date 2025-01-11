@@ -19,6 +19,7 @@ local stubs = {
     require("specs.gio_spec"),
     require("specs.gmodule_spec"),
     require("specs.girepository_spec"),
+    require("specs.glfw_spec"),
     nil,
 }
 
