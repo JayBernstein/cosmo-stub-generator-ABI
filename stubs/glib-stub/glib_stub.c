@@ -3732,7 +3732,7 @@ void (g_thread_unref)(GThread * thread) { stub_funcs.ptr_g_thread_unref(thread);
 GThread * (g_thread_new)(const gchar * name, GThreadFunc func, gpointer data) { return stub_funcs.ptr_g_thread_new(name, func, data); }
 GThread * (g_thread_try_new)(const gchar * name, GThreadFunc func, gpointer data, GError * * error) { return stub_funcs.ptr_g_thread_try_new(name, func, data, error); }
 GThread * (g_thread_self)(void) { return stub_funcs.ptr_g_thread_self(); }
-void (g_thread_exit)(gpointer retval) { stub_funcs.ptr_g_thread_exit(retval); }
+void (g_thread_exit)(gpointer retval) { stub_funcs.ptr_g_thread_exit(retval); __builtin_unreachable(); }
 gpointer (g_thread_join)(GThread * thread) { return stub_funcs.ptr_g_thread_join(thread); }
 void (g_thread_yield)(void) { stub_funcs.ptr_g_thread_yield(); }
 void (g_mutex_init)(GMutex * mutex) { stub_funcs.ptr_g_mutex_init(mutex); }
@@ -4819,7 +4819,7 @@ void (g_log_set_debug_enabled)(gboolean enabled) { stub_funcs.ptr_g_log_set_debu
 void (_g_log_fallback_handler)(const gchar * log_domain, GLogLevelFlags log_level, const gchar * message, gpointer unused_data) { stub_funcs.ptr__g_log_fallback_handler(log_domain, log_level, message, unused_data); }
 void (g_return_if_fail_warning)(const char * log_domain, const char * pretty_function, const char * expression) { stub_funcs.ptr_g_return_if_fail_warning(log_domain, pretty_function, expression); }
 void (g_warn_message)(const char * domain, const char * file, int line, const char * func, const char * warnexpr) { stub_funcs.ptr_g_warn_message(domain, file, line, func, warnexpr); }
-void (g_assert_warning)(const char * log_domain, const char * file, const int line, const char * pretty_function, const char * expression) { stub_funcs.ptr_g_assert_warning(log_domain, file, line, pretty_function, expression); }
+void (g_assert_warning)(const char * log_domain, const char * file, const int line, const char * pretty_function, const char * expression) { stub_funcs.ptr_g_assert_warning(log_domain, file, line, pretty_function, expression); __builtin_unreachable(); }
 void (g_print)(const gchar * format, ...) { va_list vaargs; va_start(vaargs, format); stub_funcs.ptr_g_vprintf(format, vaargs); va_end(vaargs); }
 GPrintFunc (g_set_print_handler)(GPrintFunc func) { return stub_funcs.ptr_g_set_print_handler(func); }
 GPrintFunc (g_set_printerr_handler)(GPrintFunc func) { return stub_funcs.ptr_g_set_printerr_handler(func); }
@@ -5144,7 +5144,7 @@ void (g_test_case_free)(GTestCase * test_case) { stub_funcs.ptr_g_test_case_free
 void (g_test_suite_free)(GTestSuite * suite) { stub_funcs.ptr_g_test_suite_free(suite); }
 void (g_test_trap_assertions)(const char * domain, const char * file, int line, const char * func, guint64 assertion_flags, const char * pattern) { stub_funcs.ptr_g_test_trap_assertions(domain, file, line, func, assertion_flags, pattern); }
 void (g_assertion_message)(const char * domain, const char * file, int line, const char * func, const char * message) { stub_funcs.ptr_g_assertion_message(domain, file, line, func, message); }
-void (g_assertion_message_expr)(const char * domain, const char * file, int line, const char * func, const char * expr) { stub_funcs.ptr_g_assertion_message_expr(domain, file, line, func, expr); }
+void (g_assertion_message_expr)(const char * domain, const char * file, int line, const char * func, const char * expr) { stub_funcs.ptr_g_assertion_message_expr(domain, file, line, func, expr); __builtin_unreachable(); }
 void (g_assertion_message_cmpstr)(const char * domain, const char * file, int line, const char * func, const char * expr, const char * arg1, const char * cmp, const char * arg2) { stub_funcs.ptr_g_assertion_message_cmpstr(domain, file, line, func, expr, arg1, cmp, arg2); }
 void (g_assertion_message_cmpstrv)(const char * domain, const char * file, int line, const char * func, const char * expr, const char * const * arg1, const char * const * arg2, gsize first_wrong_idx) { stub_funcs.ptr_g_assertion_message_cmpstrv(domain, file, line, func, expr, arg1, arg2, first_wrong_idx); }
 void (g_assertion_message_cmpint)(const char * domain, const char * file, int line, const char * func, const char * expr, guint64 arg1, const char * cmp, guint64 arg2, char numtype) { stub_funcs.ptr_g_assertion_message_cmpint(domain, file, line, func, expr, arg1, cmp, arg2, numtype); }

@@ -171,6 +171,8 @@ local function try_find_va_equivalent(funcs, fname, fargs)
     return nil
 end
 
+local RAYO_COSMICO = "__builtin_unreachable(); "
+
 local function create_variadic_function(funcs, fname, fargs, ret_type)
     local va_equiv = try_find_va_equivalent(funcs, fname, fargs)
 
@@ -194,7 +196,7 @@ local function create_variadic_function(funcs, fname, fargs, ret_type)
         va_equiv:name(),
         table.concat(utils.transform(fargs, function(_, v) return v:name() end), ", ")
             .. string.format(", %svaargs", va_equiv_args[#va_equiv_args]:type():name() == "Pointer" and "&" or ""),
-        nonvoid and "return ret; " or ""
+        va_equiv:isNoReturn() and RAYO_COSMICO or nonvoid and "return ret; " or ""
     )
 end
 
@@ -220,13 +222,14 @@ local function gen_func(funcs, func, soname)
         local args_inner_str = table.concat(utils.transform(args, function(_, v) return v:name() end), ", ")
 
         func_body = string.format(
-            "%s (%s)(%s) { %sstub_funcs.ptr_%s(%s); }",
+            "%s (%s)(%s) { %sstub_funcs.ptr_%s(%s); %s}",
             ret_type,
             name,
             args_str,
             ret_kwd,
             name,
-            args_inner_str
+            args_inner_str,
+            func:isNoReturn() and RAYO_COSMICO or ""
         )
     end
 
