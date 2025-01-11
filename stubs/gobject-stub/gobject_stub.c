@@ -486,7 +486,7 @@ static struct gobjectFuncs {
 void *gobject;
 
 void initialize_gobject(void) {
-    char *candidates_gobject[] = { "libgobject-2.so", "libgobject-2.0-0.dll" };
+    char *candidates_gobject[] = { "libgobject-2.0.so", "libgobject-2.0-0.dll" };
     gobject = try_find_lib(candidates_gobject, 2);
 
     if (!gobject) {

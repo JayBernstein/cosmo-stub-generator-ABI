@@ -22,7 +22,7 @@ static struct gmoduleFuncs {
 void *gmodule;
 
 void initialize_gmodule(void) {
-    char *candidates_gmodule[] = { "libgmodule-2.so", "libgmodule-2.0-0.dll" };
+    char *candidates_gmodule[] = { "libgmodule-2.0.so", "libgmodule-2.0-0.dll" };
     gmodule = try_find_lib(candidates_gmodule, 2);
 
     if (!gmodule) {

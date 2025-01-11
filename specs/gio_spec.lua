@@ -4,7 +4,7 @@ return {
     name = "gio",
     filter = { "%/usr%/include%/glib%-2%.0%/gio%/" },
     hfile = utils.path_combine(utils.spec_path(), "gio_spec.h"),
-    so = { name = "gio", fnames = { "libgio-2.so", "libgio-2.0-0.dll" } },
+    so = { name = "gio", fnames = { "libgio-2.0.so", "libgio-2.0-0.dll" } },
     search_dirs = {
         "/usr/include/glib-2.0/",
         "/usr/lib/glib-2.0/include/",

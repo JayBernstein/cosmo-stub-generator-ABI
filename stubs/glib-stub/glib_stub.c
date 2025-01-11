@@ -1793,7 +1793,7 @@ static struct glibFuncs {
 void *glib2;
 
 void initialize_glib(void) {
-    char *candidates_glib2[] = { "libglib-2.so", "libglib-2.0-0.dll" };
+    char *candidates_glib2[] = { "libglib-2.0.so", "libglib-2.0-0.dll" };
     glib2 = try_find_lib(candidates_glib2, 2);
 
     if (!glib2) {

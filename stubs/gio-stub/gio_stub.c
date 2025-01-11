@@ -1996,7 +1996,7 @@ static struct gioFuncs {
 void *gio;
 
 void initialize_gio(void) {
-    char *candidates_gio[] = { "libgio-2.so", "libgio-2.0-0.dll" };
+    char *candidates_gio[] = { "libgio-2.0.so", "libgio-2.0-0.dll" };
     gio = try_find_lib(candidates_gio, 2);
 
     if (!gio) {
