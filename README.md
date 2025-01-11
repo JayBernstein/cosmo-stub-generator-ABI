@@ -1,0 +1,3 @@
+# cosmo-stub-generator
+
+Guh?

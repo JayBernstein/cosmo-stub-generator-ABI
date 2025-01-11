@@ -1,0 +1,3 @@
+[submodule "luaclang-parser"]
+	path = luaclang-parser
+	url = https://github.com/ppebb/luaclang-parser.git
