@@ -31,6 +31,8 @@ local function cxtype_name(name)
         return "long double"
     elseif name == "UInt" then
         return "unsigned int"
+    elseif name == "UChar" then
+        return "unsigned char"
     else
         return name:lower()
     end
