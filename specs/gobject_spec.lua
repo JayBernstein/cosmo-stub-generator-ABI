@@ -4,7 +4,7 @@ return {
     name = "gobject",
     filter = { "%/usr%/include%/glib%-2%.0%/gobject%/", "%/usr%/include%/glib%-2%.0%/glib%-object%.h%/" },
     hfile = utils.path_combine(utils.spec_path(), "gobject_spec.h"),
-    so = { name = "glib2", fnames = { "libgobject-2.so", "libgobject-2.0-0.dll" } },
+    so = { name = "gobject", fnames = { "libgobject-2.so", "libgobject-2.0-0.dll" } },
     search_dirs = {
         "/usr/include/glib-2.0/",
         "/usr/lib/glib-2.0/include/",
