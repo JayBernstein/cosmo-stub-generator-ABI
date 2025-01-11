@@ -7,52 +7,16 @@ local utils = require("src.utils")
 local script_path = utils.get_script_dir()
 assert(script_path, "Unable to determine script path!")
 
-local spec_path = utils.path_combine(script_path, "..", "specs")
-
 local stubs_root = utils.path_combine(script_path, "..", "stubs")
 if not utils.file_exists(stubs_root) then
     assert(lfs.mkdir(stubs_root))
 end
 
 local stubs = {
-    {
-        name = "gtk4",
-        filter = { "%/usr%/include%/gtk%-4%.0%/" },
-        hfile = utils.path_combine(spec_path, "gtk_spec.h"),
-        so = { name = "gtk4", fnames = { "libgtk-4.so", "libgtk-4-0.dll" } },
-        search_dirs = {
-            "/usr/include/gtk-4.0/",
-            "/usr/include/glib-2.0/",
-            "/usr/lib/glib-2.0/include/",
-            "/usr/include/cairo",
-            "/usr/include/pango-1.0/",
-            "/usr/include/harfbuzz/",
-            "/usr/include/gdk-pixbuf-2.0/",
-            "/usr/include/graphene-1.0",
-            "/usr/lib/graphene-1.0/include",
-        },
-        header_includes = {
-            "gtk/gtk.h",
-            "gtk/a11y/gtkatspi.h",
-            "gdk/x11/gdkx.h",
-            "gdk/wayland/gdkwayland.h",
-            "gdk/broadway/gdkbroadway.h",
-        },
-    },
-    {
-        name = "glib2",
-        filter = { "%/usr%/include%/glib%-2%.0%/" },
-        hfile = utils.path_combine(spec_path, "glib_spec.h"),
-        so = { name = "glib2", fnames = { "libglib-2.so", "libglib-2.0-0.dll" } },
-        search_dirs = {
-            "/usr/include/glib-2.0/",
-            "/usr/lib/glib-2.0/include/",
-        },
-        header_includes = {
-            "glib.h",
-            "glib-unix.h",
-        },
-    },
+    require("specs.gtk_spec"),
+    require("specs.glib_spec"),
+    require("specs.gobject_spec"),
+    nil,
 }
 
 --- @param name string
@@ -194,7 +158,7 @@ local function try_find_va_equivalent(funcs, fname, fargs)
                         name,
                         args,
                         _pattern,
-                        string.format("args count mismatch, original: %s, found: %s", #fargs, #args)
+                        string.format("args count mismatch, expected: %s, found: %s", #fargs + 1, #args)
                     )
                 else
                     return func
@@ -243,11 +207,12 @@ local function gen_func(funcs, func, soname)
     local args_str = fmt_args(args, is_variadic)
 
     local func_body
+    local success = true
     if is_variadic then
         func_body = create_variadic_function(funcs, name, args, ret_type)
 
         if not func_body then
-            return nil, nil, nil, nil, false
+            success = false
         end
     else
         local ret_kwd = ret_type == "void" and "" or "return "
@@ -267,7 +232,8 @@ local function gen_func(funcs, func, soname)
     return string.format("    %s (*ptr_%s)(%s);", ret_type, name, args_str),
         string.format('    stub_funcs.ptr_%s = try_find_sym(%s, "%s");', name, soname, name),
         func_body,
-        string.format("%s (%s)(%s);", ret_type, name, args_str)
+        string.format("%s (%s)(%s);", ret_type, name, args_str),
+        success
 end
 
 for _, stub in ipairs(stubs) do
@@ -346,6 +312,11 @@ for _, stub in ipairs(stubs) do
 
     for _, func in ipairs(funcs) do
         local c_struct_def, c_load_sym, c_func_def, h_func_def, var_failed = gen_func(funcs, func, stub.so.name)
+
+        local explicit_body = stub.explicit_function_bodies and stub.explicit_function_bodies[func:name()]
+        if explicit_body then
+            c_func_def = explicit_body
+        end
 
         if c_struct_def and c_load_sym and c_func_def and h_func_def then
             table.insert(c_struct_defs, c_struct_def)

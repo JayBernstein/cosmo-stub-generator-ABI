@@ -153,6 +153,8 @@ function M.get_script_dir()
     return str:match("(.*/)")
 end
 
+function M.spec_path() return M.path_combine(M.get_script_dir(), "..", "specs") end
+
 --- Applies `func` to each key-value pair in the table, providing the key and
 --- value as arguments
 --- @param tbl table
