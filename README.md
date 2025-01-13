@@ -95,6 +95,8 @@ This repository includes full[^1] stubs for
 * GIRepository
 * GLFW
 * OpenGL
+* SDL2
+* SDL2_ttf
 
 [^1]: Some variadic functions may be
 missing, but their equivalents should exist.
