@@ -86,8 +86,17 @@ a stub for use with [cosmopolitan](https://github.com/jart/cosmopolitan).
 
 ## Included Stubs
 
-This repository includes full stubs for GTK (and GSK, GDK), GLib, GIO, GObject,
-GModule, and GIRepository alongside GLFW. Some variadic functions may be
+This repository includes full[^1] stubs for
+* GTK (and GSK, GDK)
+* GLib
+* GIO
+* GObject,
+* GModule
+* GIRepository
+* GLFW
+* OpenGL
+
+[^1]: Some variadic functions may be
 missing, but their equivalents should exist.
 
 ## Using Stubs
