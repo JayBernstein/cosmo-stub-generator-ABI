@@ -21,6 +21,8 @@ local stubs = {
     require("specs.girepository_spec"),
     require("specs.glfw_spec"),
     require("specs.opengl_spec"),
+    require("specs.sdl2_spec"),
+    require("specs.sdl2_ttf_spec"),
     nil,
 }
 
@@ -37,6 +39,8 @@ local function cxtype_name(name)
         return "unsigned char"
     elseif name == "ULong" then
         return "unsigned long"
+    elseif name == "UShort" then
+        return "unsigned short"
     else
         return name:lower()
     end
@@ -94,12 +98,15 @@ end
 
 local fmt_args
 
-local function fmt_arg(arg, idx, name_only)
-    assert(idx, "idx is required in case arg:name() is empty!")
+local function fmt_arg(arg, idx, name_only, ignore_missing_name)
+    assert(
+        not (name_only and ignore_missing_name),
+        "fmt_arg must only have name_only or ignore_missing_name set, not both"
+    )
 
-    local name = arg:name()
+    local name = arg.type and arg:name() or ""
 
-    if not name or #name == 0 then
+    if not ignore_missing_name and (not name or #name == 0) then
         name = "_" .. tostring(idx)
     end
 
@@ -107,7 +114,9 @@ local function fmt_arg(arg, idx, name_only)
         return name
     end
 
-    local type, len, args = get_full_type(arg:type())
+    -- If when passing in fptr_args recursively, it's a list of types and not a
+    -- list of cursors
+    local type, len, fptr_args = get_full_type(arg.type and arg:type() or arg)
     local array_str = ""
     if len == 0 then
         array_str = "[]"
@@ -119,19 +128,22 @@ local function fmt_arg(arg, idx, name_only)
         name = name .. array_str
     end
 
-    if not args then
+    if not fptr_args then
         return string.format("%s %s", type, name)
     else
-        return string.format("%s (*%s)(%s)", type, name, fmt_args(args, arg:type():is_variadic(), false))
+        return string.format("%s (*%s)(%s)", type, name, fmt_args(fptr_args, arg:type():is_variadic(), false, true))
     end
 end
 
-fmt_args = function(args, is_var, name_only)
+fmt_args = function(args, is_var, name_only, ignore_missing_name)
     local ret
     if #args == 0 then
         ret = name_only and "" or "void"
     else
-        ret = table.concat(utils.transform(args, function(k, v) return fmt_arg(v, k, name_only) end), ", ")
+        ret = table.concat(
+            utils.transform(args, function(k, v) return fmt_arg(v, k, name_only, ignore_missing_name) end),
+            ", "
+        )
     end
 
     if is_var and not name_only then
@@ -297,6 +309,7 @@ local function gen_func(funcs, func, soname)
 end
 
 for _, stub in ipairs(stubs) do
+    print("Generating " .. stub.name)
     local stub_dir = utils.path_combine(stubs_root, stub.name .. "-stub")
     if not utils.file_exists(stub_dir) then
         assert(lfs.mkdir(stub_dir))
