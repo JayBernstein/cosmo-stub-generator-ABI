@@ -42,7 +42,7 @@ local function cxtype_name(name)
     end
 end
 
---- @return string, integer|nil
+--- @return string name, integer|nil len, table|nil arguments
 local function get_full_type(type, flip)
     local _type = type
 
@@ -79,6 +79,10 @@ local function get_full_type(type, flip)
         local array_type = _type:get_array_element_type()
 
         return get_full_type(array_type, true), 0
+    elseif _type:name() == "FunctionProto" then
+        local result_type = get_full_type(_type:result_type())
+
+        return result_type, nil, _type:arguments()
     else
         local const_str = _type:is_const() and "const " or ""
         local volatile_str = _type:is_volatile() and "volatile " or ""
@@ -88,8 +92,22 @@ local function get_full_type(type, flip)
     end
 end
 
-local function fmt_arg(arg)
-    local type, len = get_full_type(arg:type())
+local fmt_args
+
+local function fmt_arg(arg, idx, name_only)
+    assert(idx, "idx is required in case arg:name() is empty!")
+
+    local name = arg:name()
+
+    if not name or #name == 0 then
+        name = "_" .. tostring(idx)
+    end
+
+    if name_only then
+        return name
+    end
+
+    local type, len, args = get_full_type(arg:type())
     local array_str = ""
     if len == 0 then
         array_str = "[]"
@@ -97,18 +115,26 @@ local function fmt_arg(arg)
         array_str = string.format("[%s]", len)
     end
 
-    return string.format("%s %s%s", type, arg:name(), array_str)
-end
-
-local function fmt_args(args, is_var)
-    local ret
-    if #args == 0 then
-        ret = "void"
-    else
-        ret = table.concat(utils.transform(args, function(_, v) return fmt_arg(v) end), ", ")
+    if #array_str ~= 0 then
+        name = name .. array_str
     end
 
-    if is_var then
+    if not args then
+        return string.format("%s %s", type, name)
+    else
+        return string.format("%s (*%s)(%s)", type, name, fmt_args(args, arg:type():is_variadic(), false))
+    end
+end
+
+fmt_args = function(args, is_var, name_only)
+    local ret
+    if #args == 0 then
+        ret = name_only and "" or "void"
+    else
+        ret = table.concat(utils.transform(args, function(k, v) return fmt_arg(v, k, name_only) end), ", ")
+    end
+
+    if is_var and not name_only then
         ret = ret .. ", ..."
     end
 
@@ -181,28 +207,41 @@ end
 
 local RAYO_COSMICO = "__builtin_unreachable(); "
 
-local function create_variadic_function(funcs, fname, fargs, ret_type)
+--- @return string sig
+local function gen_func_signature(name, ret_str, ret_type, args_str, fptr_args)
+    -- TODO: What if the function pointer returns a function pointer
+    if fptr_args then
+        return string.format(
+            "%s (*%s(%s))(%s)",
+            ret_str,
+            name,
+            args_str,
+            fmt_args(fptr_args, ret_type:is_variadic(), false)
+        )
+    else
+        return string.format("%s (%s)(%s)", ret_str, name, args_str)
+    end
+end
+
+local function gen_variadic_func(funcs, fname, fargs, ret_type_str, fptr_args)
     local va_equiv = try_find_va_equivalent(funcs, fname, fargs)
 
     if not va_equiv then
         return nil
     end
 
-    local nonvoid = ret_type ~= "void"
-    local ret_var = nonvoid and (ret_type .. " ret; ") or ""
+    local nonvoid = ret_type_str ~= "void" and not fptr_args
+    local ret_var = nonvoid and (ret_type_str .. " ret; ") or ""
 
     local va_equiv_args = va_equiv:arguments()
 
     return string.format(
-        "%s (%s)(%s) { %sva_list vaargs; va_start(vaargs, %s); %sstub_funcs.ptr_%s(%s); va_end(vaargs); %s}",
-        ret_type,
-        fname,
-        fmt_args(fargs) .. ", ...",
+        "{ %sva_list vaargs; va_start(vaargs, %s); %sstub_funcs.ptr_%s(%s); va_end(vaargs); %s}",
         ret_var,
         fargs[#fargs]:name(),
         nonvoid and "ret = " or "",
         va_equiv:name(),
-        table.concat(utils.transform(fargs, function(_, v) return v:name() end), ", ")
+        fmt_args(fargs, true, true)
             .. string.format(", %svaargs", va_equiv_args[#va_equiv_args]:type():name() == "Pointer" and "&" or ""),
         va_equiv:is_no_return() and RAYO_COSMICO or nonvoid and "return ret; " or ""
     )
@@ -211,29 +250,38 @@ end
 --- return string c struct def, string c load sym, string c function def, string header function def
 local function gen_func(funcs, func, soname)
     local name = func:name()
-    local ret_type = get_full_type(func:result_type())
+    local ret_type_str, _, fptr_args = get_full_type(func:result_type())
     local args = func:arguments()
     local is_variadic = func:type():is_variadic()
 
-    local args_str = fmt_args(args, is_variadic)
+    local args_str = fmt_args(args, is_variadic, false)
 
-    local func_body
+    local sig = gen_func_signature(name, ret_type_str, func:result_type(), args_str, fptr_args)
+
+    local struct_def_sig_name
+    if fptr_args then
+        struct_def_sig_name = string.format("(*ptr_%s)", name)
+    else
+        struct_def_sig_name = "*ptr_" .. name
+    end
+
+    local struct_def_sig =
+        gen_func_signature(struct_def_sig_name, ret_type_str, func:result_type(), args_str, fptr_args)
+
     local success = true
+    local func_body
     if is_variadic then
-        func_body = create_variadic_function(funcs, name, args, ret_type)
+        func_body = gen_variadic_func(funcs, name, args, ret_type_str, fptr_args)
 
         if not func_body then
             success = false
         end
     else
-        local ret_kwd = ret_type == "void" and "" or "return "
-        local args_inner_str = table.concat(utils.transform(args, function(_, v) return v:name() end), ", ")
+        local ret_kwd = (ret_type_str == "void" and not fptr_args and "") or "return "
+        local args_inner_str = fmt_args(args, false, true)
 
         func_body = string.format(
-            "%s (%s)(%s) { %sstub_funcs.ptr_%s(%s); %s}",
-            ret_type,
-            name,
-            args_str,
+            "{ %sstub_funcs.ptr_%s(%s); %s}",
             ret_kwd,
             name,
             args_inner_str,
@@ -241,10 +289,10 @@ local function gen_func(funcs, func, soname)
         )
     end
 
-    return string.format("    %s (*ptr_%s)(%s);", ret_type, name, args_str),
+    return string.format("    %s;", struct_def_sig),
         string.format('    stub_funcs.ptr_%s = try_find_sym(%s, "%s");', name, soname, name),
-        func_body,
-        string.format("%s (%s)(%s);", ret_type, name, args_str),
+        func_body and string.format("%s %s", sig, func_body) or nil,
+        sig .. ";",
         success
 end
 
