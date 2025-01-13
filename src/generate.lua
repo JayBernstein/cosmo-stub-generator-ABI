@@ -1,4 +1,4 @@
-local clang = require("luaclang-parser")
+local clang = require("libclang-lua")
 local lfs = require("lfs")
 local utils = require("src.utils")
 
@@ -20,6 +20,7 @@ local stubs = {
     require("specs.gmodule_spec"),
     require("specs.girepository_spec"),
     require("specs.glfw_spec"),
+    require("specs.opengl_spec"),
     nil,
 }
 
@@ -34,6 +35,8 @@ local function cxtype_name(name)
         return "unsigned int"
     elseif name == "UChar" then
         return "unsigned char"
+    elseif name == "ULong" then
+        return "unsigned long"
     else
         return name:lower()
     end
@@ -46,9 +49,9 @@ local function get_full_type(type, flip)
     local ptr_str = ""
 
     while _type:name() == "Pointer" do
-        local const_str = _type:isConst() and " const" or ""
-        local volatile_str = _type:isVolatile() and " volatile" or ""
-        local restrict_str = _type:isRestrict() and " restrict" or ""
+        local const_str = _type:is_const() and " const" or ""
+        local volatile_str = _type:is_volatile() and " volatile" or ""
+        local restrict_str = _type:is_restrict() and " restrict" or ""
 
         if not flip then
             ptr_str = ptr_str .. const_str .. volatile_str .. " *"
@@ -60,26 +63,26 @@ local function get_full_type(type, flip)
     end
 
     if _type:name() == "Elaborated" then
-        local struct_str = _type:getNamedType():name() == "Record" and "struct " or ""
-        local const_str = _type:isConst() and "const " or ""
-        local volatile_str = _type:isVolatile() and "volatile " or ""
-        local restrict_str = _type:isRestrict() and "restrict " or ""
+        local struct_str = _type:get_named_type():name() == "Record" and "struct " or ""
+        local const_str = _type:is_const() and "const " or ""
+        local volatile_str = _type:is_volatile() and "volatile " or ""
+        local restrict_str = _type:is_restrict() and "restrict " or ""
         local e_type = _type:declaration()
 
         return const_str .. volatile_str .. restrict_str .. struct_str .. e_type:name() .. ptr_str, nil
     elseif _type:name() == "ConstantArray" then
-        local array_type = _type:getArrayElementType()
-        local len = _type:getArraySize()
+        local array_type = _type:get_array_element_type()
+        local len = _type:get_array_size()
 
         return get_full_type(array_type, true), len
     elseif _type:name() == "IncompleteArray" then
-        local array_type = _type:getArrayElementType()
+        local array_type = _type:get_array_element_type()
 
         return get_full_type(array_type, true), 0
     else
-        local const_str = _type:isConst() and "const " or ""
-        local volatile_str = _type:isVolatile() and "volatile " or ""
-        local restrict_str = _type:isRestrict() and "restrict " or ""
+        local const_str = _type:is_const() and "const " or ""
+        local volatile_str = _type:is_volatile() and "volatile " or ""
+        local restrict_str = _type:is_restrict() and "restrict " or ""
 
         return const_str .. volatile_str .. restrict_str .. cxtype_name(_type:name()) .. ptr_str, nil
     end
@@ -201,16 +204,16 @@ local function create_variadic_function(funcs, fname, fargs, ret_type)
         va_equiv:name(),
         table.concat(utils.transform(fargs, function(_, v) return v:name() end), ", ")
             .. string.format(", %svaargs", va_equiv_args[#va_equiv_args]:type():name() == "Pointer" and "&" or ""),
-        va_equiv:isNoReturn() and RAYO_COSMICO or nonvoid and "return ret; " or ""
+        va_equiv:is_no_return() and RAYO_COSMICO or nonvoid and "return ret; " or ""
     )
 end
 
 --- return string c struct def, string c load sym, string c function def, string header function def
 local function gen_func(funcs, func, soname)
     local name = func:name()
-    local ret_type = get_full_type(func:resultType())
+    local ret_type = get_full_type(func:result_type())
     local args = func:arguments()
-    local is_variadic = func:type():isFunctionTypeVariadic()
+    local is_variadic = func:type():is_variadic()
 
     local args_str = fmt_args(args, is_variadic)
 
@@ -234,7 +237,7 @@ local function gen_func(funcs, func, soname)
             ret_kwd,
             name,
             args_inner_str,
-            func:isNoReturn() and RAYO_COSMICO or ""
+            func:is_no_return() and RAYO_COSMICO or ""
         )
     end
 
@@ -274,15 +277,15 @@ for _, stub in ipairs(stubs) do
     end
     utils.tbl_extend(parse_args, { stub.hfile })
 
-    local idx = clang.createIndex(false, true)
-    local tu = assert(idx:parse(parse_args))
+    local idx = clang.create_index(false, true)
+    local tu = assert(idx:parse_translation_unit(parse_args))
 
     local function find_functions(cursor)
         local ret = {}
 
         local function find(_cursor)
             for _, c in ipairs(_cursor:children()) do
-                if c and c:kind() == "FunctionDecl" and not c:isFunctionInlined() then
+                if c and c:kind() == "FunctionDecl" and not c:is_inlined() then
                     local loc = c:location() or ""
                     local matched_any = false
                     if loc == stub.hfile then

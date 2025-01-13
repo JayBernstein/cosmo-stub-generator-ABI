@@ -6,8 +6,8 @@ a stub for use with [cosmopolitan](https://github.com/jart/cosmopolitan).
 ## Generating Stubs
 
 0. Have lua 5.4
-1. Build luaclang-parser, following the instructions at
-   https://github.com/ppebb/luaclang-parser. Make sure to checkout submodules.
+1. Build libclang-lua (make sure to checkout submodules), following the
+   instructions at https://github.com/ppebb/libclang-lua.
 2. Install [luafilesystem](https://lunarmodules.github.io/luafilesystem/)
 3. Add a header file to `./specs` that `#include`s whichever headers you wish
    to process
