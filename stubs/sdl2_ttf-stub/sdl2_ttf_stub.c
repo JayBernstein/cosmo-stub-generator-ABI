@@ -100,8 +100,8 @@ static struct sdl2_ttfFuncs {
 void *sdl2_ttf;
 
 void initialize_sdl2_ttf(void) {
-    char *candidates_sdl2_ttf[] = { "libSDL2_ttf-2.0.so", "sdl2_ttf.dll" };
-    sdl2_ttf = try_find_lib(candidates_sdl2_ttf, 2);
+    char *candidates_sdl2_ttf[] = { "libSDL2_ttf-2.0.so", "libSDL2_ttf-2.0.so.0", "sdl2_ttf.dll" };
+    sdl2_ttf = try_find_lib(candidates_sdl2_ttf, 3);
 
     if (!sdl2_ttf) {
         fprintf(stderr, "Unable to locate sdl2_ttf, exiting!");
