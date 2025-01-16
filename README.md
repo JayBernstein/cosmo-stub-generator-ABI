@@ -82,7 +82,7 @@ a stub for use with [cosmopolitan](https://github.com/jart/cosmopolitan).
     ```
     Additional examples can be located in the `./specs` directory
 5. `require` your lua spec in the `stubs` table in `./src/generate.lua`
-6. Run `lua src/generate.lua`
+6. Run `lua src/generate.lua path/to/clang/include`, path/to/clang/include should be somewhere like `/usr/lib/clang/19/include/`
 
 ## Included Stubs
 

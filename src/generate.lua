@@ -331,7 +331,8 @@ for _, stub in ipairs(stubs) do
         "",
     })
 
-    local parse_args = { "-isystem", "/usr/lib/clang/18/include/" }
+    assert(arg[1], "Pass your clang include directory as argument 1!")
+    local parse_args = { "-isystem", arg[1] }
     for _, dir in ipairs(stub.search_dirs or {}) do
         table.insert(parse_args, "-isystem")
         table.insert(parse_args, dir)
