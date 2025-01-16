@@ -23,6 +23,7 @@ local stubs = {
     require("specs.opengl_spec"),
     require("specs.sdl2_spec"),
     require("specs.sdl2_ttf_spec"),
+    require("specs.sdl2_image_spec"),
     nil,
 }
 
