@@ -261,6 +261,53 @@ local function gen_variadic_func(funcs, fname, fargs, ret_type_str, fptr_args)
 end
 
 --- return string c struct def, string c load sym, string c function def, string header function def
+local function gen_ms_func(funcs, func, soname)
+    local name = func:name()
+    local ret_type_str, _, fptr_args = get_full_type(func:result_type())
+    local args = func:arguments()
+    local is_variadic = func:type():is_variadic()
+
+    local args_str = fmt_args(args, is_variadic, false)
+
+    local sig = gen_func_signature(name, ret_type_str, func:result_type(), args_str, fptr_args)
+
+    local struct_def_sig_name
+    if fptr_args then
+        struct_def_sig_name = string.format("(__attribute__((__ms_abi__)) *ptr_ms_%s)", name)
+    else
+        struct_def_sig_name = "__attribute__((__ms_abi__)) *ptr_ms_" .. name
+    end
+
+    local struct_def_sig =
+        gen_func_signature(struct_def_sig_name, ret_type_str, func:result_type(), args_str, fptr_args)
+
+    local success = true
+    local func_body
+    if is_variadic then
+        func_body = gen_variadic_func(funcs, name, args, ret_type_str, fptr_args)
+
+        if not func_body then
+            success = false
+        end
+    else
+        local ret_kwd = (ret_type_str == "void" and not fptr_args and "") or "return "
+        local args_inner_str = fmt_args(args, false, true)
+        func_body = string.format(
+            "{ if(IsWindows){} %sstub_funcs.ptr_ms%s(%s); %s}",
+            ret_kwd,
+            name,
+            args_inner_str,
+            func:is_no_return() and RAYO_COSMICO or ""
+        )
+    end
+
+    return string.format("    %s;", struct_def_sig),
+        string.format('    stub_funcs.ptr_ms_%s = try_find_sym(%s, "%s");', name, soname, name),
+        func_body and string.format("%s %s", sig, func_body) or nil,
+        sig .. ";",
+        success
+end
+
 local function gen_func(funcs, func, soname)
     local name = func:name()
     local ret_type_str, _, fptr_args = get_full_type(func:result_type())
@@ -294,7 +341,11 @@ local function gen_func(funcs, func, soname)
         local args_inner_str = fmt_args(args, false, true)
 
         func_body = string.format(
-            "{ %sstub_funcs.ptr_%s(%s); %s}",
+            "{ \n\tif((IsLinux())){\n\t\t%sstub_funcs.ptr_%s(%s); %s \n\t}\n\telse {\n\t\t%sstub_funcs.ptr_ms_%s(%s); %s\n\t}}",
+            ret_kwd,
+            name,
+            args_inner_str,
+            func:is_no_return() and RAYO_COSMICO or "",
             ret_kwd,
             name,
             args_inner_str,
@@ -327,8 +378,9 @@ for _, stub in ipairs(stubs) do
         "#include <stdio.h>",
         "#include <stdlib.h>",
         "",
-        "#define _COMSO_SOURCE",
+        --"#define _COSMO_SOURCE",
         "#include <libc/dlopen/dlfcn.h>",
+        "#define MS_ABI_ATTR __attribute__((__ms_abi__))",
         "",
     })
 
@@ -403,6 +455,22 @@ for _, stub in ipairs(stubs) do
         end
     end
 
+    for _, func in ipairs(funcs) do
+        local c_struct_def, c_load_sym, c_func_def, h_func_def, var_failed = gen_ms_func(funcs, func, stub.so.name)
+
+        local explicit_body = stub.explicit_function_bodies and stub.explicit_function_bodies[func:name()]
+        if explicit_body then
+            c_func_def = explicit_body
+        end
+
+        if c_struct_def and c_load_sym and c_func_def and h_func_def then
+            table.insert(c_struct_defs, c_struct_def)
+            table.insert(c_load_syms, c_load_sym)
+        elseif var_failed then
+            print("skipping matchless va function " .. func:name())
+        end
+    end
+
     utils.tbl_extend(c_text, c_struct_defs)
 
     utils.tbl_extend(c_text, {
@@ -416,6 +484,7 @@ for _, stub in ipairs(stubs) do
             stub.so.name,
             table.concat(utils.transform(stub.so.fnames, function(_, v) return string.format('"%s"', v) end), ", ")
         ),
+        
         string.format("    %s = try_find_lib(candidates_%s, %s);", stub.so.name, stub.so.name, #stub.so.fnames),
         "",
         string.format("    if (!%s) {", stub.so.name),
@@ -438,7 +507,7 @@ for _, stub in ipairs(stubs) do
         "}",
     })
 
-    table.insert(h_text, '#include "../stub.h"')
+    table.insert(h_text, '#include "stub.h" \n #include <cosmo.h>')
     utils.tbl_extend(
         h_text,
         utils.transform(stub.header_includes, function(_, v) return string.format('#include "%s"', v) end)
@@ -454,4 +523,6 @@ for _, stub in ipairs(stubs) do
 
     utils.file_write(c_out_path, table.concat(c_text, "\n"))
     utils.file_write(h_out_path, table.concat(h_text, "\n"))
+
+    
 end

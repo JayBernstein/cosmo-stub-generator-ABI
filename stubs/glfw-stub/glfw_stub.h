@@ -1,4 +1,5 @@
-#include "../stub.h"
+#include "stub.h" 
+ #include <cosmo.h>
 #include "GLFW/glfw3.h"
 
 void initialize_glfw(void);
@@ -7,13 +8,10 @@ void close_glfw(void);
 int (glfwInit)(void);
 void (glfwTerminate)(void);
 void (glfwInitHint)(int hint, int value);
-void (glfwInitAllocator)(const GLFWallocator * allocator);
 void (glfwGetVersion)(int * major, int * minor, int * rev);
 const char * (glfwGetVersionString)(void);
 int (glfwGetError)(const char * * description);
 GLFWerrorfun (glfwSetErrorCallback)(GLFWerrorfun callback);
-int (glfwGetPlatform)(void);
-int (glfwPlatformSupported)(int platform);
 GLFWmonitor * * (glfwGetMonitors)(int * count);
 GLFWmonitor * (glfwGetPrimaryMonitor)(void);
 void (glfwGetMonitorPos)(GLFWmonitor * monitor, int * xpos, int * ypos);
@@ -36,7 +34,6 @@ GLFWwindow * (glfwCreateWindow)(int width, int height, const char * title, GLFWm
 void (glfwDestroyWindow)(GLFWwindow * window);
 int (glfwWindowShouldClose)(GLFWwindow * window);
 void (glfwSetWindowShouldClose)(GLFWwindow * window, int value);
-const char * (glfwGetWindowTitle)(GLFWwindow * window);
 void (glfwSetWindowTitle)(GLFWwindow * window, const char * title);
 void (glfwSetWindowIcon)(GLFWwindow * window, int count, const GLFWimage * images);
 void (glfwGetWindowPos)(GLFWwindow * window, int * xpos, int * ypos);

@@ -1,4 +1,5 @@
-#include "../stub.h"
+#include "stub.h" 
+ #include <cosmo.h>
 #include "GL/gl.h"
 #include "GL/glcorearb.h"
 #include "GL/glx.h"
